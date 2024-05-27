@@ -14,25 +14,39 @@ function textOut(text: string): ActionTextOut {
 export type Action = ActionInit | ActionTextIn | ActionTextOut;
 
 interface Mod {
-    handle(action: Action): Action | void | Promise<Action | void>;
+    handle: (action: Action) => void;
+    next: () => void | Action | Promise<Action>;
 }
 
 class ModHello implements Mod {
+    actions = [] as Action[];
+
     handle(a: Action) {
         if (a.type !== 'text_in') return;
         if (a.text !== 'hello') return;
-        return textOut('Hello, World!');
+        this.actions.push(textOut('Hello, World!'));
+    }
+
+    next() {
+        return this.actions.shift();
     }
 }
 
 class ModConsole implements Mod {
+    actions = [] as Action[];
+
+    constructor() {
+        this.actions.push(textIn('hello'));
+    }
+
     handle(a: Action) {
-        if (a.type === 'init') {
-            return textIn('hello');
-        }
         if (a.type === 'text_out') {
             console.log(a.text);
         }
+    }
+
+    next() {
+        return this.actions.shift();
     }
 }
 
@@ -41,7 +55,10 @@ class Bot {
     actions = [] as Action[];
 
     async start() {
-        while (this.actions.length) await this.tick();
+        while (true) {
+            await this.tick();
+            if (!this.actions.length) break;
+        }
     }
 
     async load(modName: string) {
@@ -53,23 +70,18 @@ class Bot {
         } else {
             return;
         }
-        const a = await mod.handle(init);
-        if (a) {
-            this.actions.push(a);
-        }
         this.mods.push(mod);
     }
     
     async tick() {
-        const reactions = [];
-        for (const action of this.actions) {
-            for (const mod of this.mods) {
-                const reaction = await mod.handle(action);
-                if (!reaction) continue;
-                reactions.push(reaction);
-            }
-        }
-        this.actions = reactions;
+        console.log('tick');
+        console.log(this.actions);
+        const a = this.actions.shift();
+        const reactions = await Promise.all(this.mods.map(mod => {
+            if (a) mod.handle(a);
+            return mod.next();
+        }));
+        this.actions = reactions.filter(a => a) as Action[];
     }
 }
 
