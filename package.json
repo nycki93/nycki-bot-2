@@ -4,12 +4,14 @@
   "description": "",
   "main": "main.ts",
   "scripts": {
-    "start": "tsx main.ts",
+    "start": "ts-node main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "tsx": "^4.11.0"
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
   }
 }
