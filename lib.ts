@@ -1,6 +1,10 @@
-export type ActionTextIn = { type: 'text_in', text: string };
-export function textIn(text: string): ActionTextIn {
-    return { type: 'text_in', text };
+export type ActionTextIn = { 
+    type: 'text_in', 
+    text: string,
+    user: string,
+};
+export function textIn(text: string, user: string): ActionTextIn {
+    return { type: 'text_in', text, user };
 }
 
 export type ActionTextOut = { type: 'text_out', text: string };

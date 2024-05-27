@@ -11,7 +11,7 @@ export class ModConsole extends ModBase {
             output: process.stdout,
         });
         this.rl.on('line', (line) => {
-            this.emit(textIn(line));
+            this.emit(textIn(line, 'user'));
         });
         this.emit(textOut('Console mod loaded!'));
     }
