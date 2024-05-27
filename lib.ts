@@ -1,17 +1,5 @@
-export type ActionTextIn = { 
-    type: 'text_in', 
-    text: string,
-    user: string,
-};
-export function textIn(text: string, user: string): ActionTextIn {
-    return { type: 'text_in', text, user };
-}
-
+export type ActionTextIn = { type: 'text_in', text: string, user: string };
 export type ActionTextOut = { type: 'text_out', text: string };
-export function textOut(text: string): ActionTextOut {
-    return { type: 'text_out', text };
-}
-
 export type Action = ActionTextIn | ActionTextOut;
 
 export class Bot {
@@ -23,18 +11,22 @@ export class Bot {
     
     async tick() {
         // get next action
-        const ps = this.mods.map(async (m, i) => ({ m, i, a: await m.peek() }));
-        const { m, i, a } = await Promise.race(ps);
+        const ps = this.mods.map(async (mod, index) => ({ 
+            mod, 
+            index, 
+            action: await mod.peek(),
+        }));
+        const { mod, index, action } = await Promise.race(ps);
 
         // resolve action
-        this.mods.map(m => m.send(a));
-        m.next();
+        this.mods.map(m => m.send(action));
+        mod.next();
 
         // move mod to end of turn order
         this.mods = [ 
-            ...this.mods.slice(0, i), 
-            ...this.mods.slice(i + 1),
-            m,
+            ...this.mods.slice(0, index), 
+            ...this.mods.slice(index + 1),
+            mod,
         ]
     }
 
@@ -64,8 +56,12 @@ export class ModBase implements Mod {
         this._input.push(action);
     }
 
-    emit(...actions: Action[]) {
-        this._output.push(...actions);
+    write_in(text: string, user: string) {
+        this._output.push({ type: 'text_in', text, user });
+    }
+
+    write(text: string) {
+        this._output.push({ type: 'text_out', text });
     }
 
     peek() {

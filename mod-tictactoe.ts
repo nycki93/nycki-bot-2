@@ -1,4 +1,4 @@
-import { Action, ActionTextIn, ModBase, textOut } from "./lib";
+import { Action, ActionTextIn, ModBase } from "./lib";
 
 export class ModTictactoe extends ModBase {
     player_x?: string;
@@ -16,48 +16,45 @@ export class ModTictactoe extends ModBase {
 
     join(action: ActionTextIn, args: string[]) {
         if (this.player_x && this.player_o) {
-            return textOut('cannot join, game in progress');
+            return this.write('cannot join, game in progress');
         }
         if (args.length !== 2 || !['x', 'o'].includes(args[1])) {
-            return textOut('usage: join <x|o>');
+            return this.write('usage: join <x|o>');
         }
         if (
             (args[1] === 'x' && this.player_x)
             || (args[1] === 'o' && this.player_o)
         ) {
-            return textOut('that seat is already occupied!');
+            return this.write('that seat is already occupied!');
         }
 
         // successfully seat new player
-        const output = [];
         if (args[1] === 'x') {
             this.player_x = action.user;
-            output.push(textOut(`${action.user} joined as player x.`));
+            this.write(`${action.user} joined as player x.`);
         } else {
             this.player_o = action.user;
-            output.push(textOut(`${action.user} joined as player o.`));
+            this.write(`${action.user} joined as player o.`);
         }
 
         if (this.player_x && this.player_o) {
             this.turn = 'x';
-            output.push(textOut('game started!'));
-            output.push(textOut(this.draw()));
+            this.write('game started!');
+            this.write(this.draw());
         }
-
-        return output;
     }
 
     play(action: ActionTextIn, args: string[]) {
         if (this.done) {
-            return textOut('the game has ended');
+            return this.write('the game has ended');
         }
         
         if (!this.player_x || !this.player_o) {
-            return textOut('not enough players to begin.');
+            return this.write('not enough players to begin.');
         }
 
         if (action.user !== this.player_x && action.user !== this.player_o) {
-            return textOut('you are not in this game!');
+            return this.write('you are not in this game!');
         }
 
         let team;
@@ -66,38 +63,35 @@ export class ModTictactoe extends ModBase {
         } else if (this.turn === 'o' && action.user === this.player_o) {
             team = 'o';
         } else {
-            return textOut('it is not your turn!');
+            return this.write('it is not your turn!');
         }
 
         const target = Number(args.length > 1 && args[1]) - 1;
         if (args.length !== 2 || !(target in this.board)) {
-            return textOut('usage: play <1-9>');
+            return this.write('usage: play <1-9>');
         }
 
         if (['x', 'o'].includes(this.board[target])) {
-            return textOut('that spot is already claimed!');
+            return this.write('that spot is already claimed!');
         }
 
-        const output = [];
         this.board[target] = team;
         this.turn = team === 'x' ? 'o' : 'x';
-        output.push(textOut(this.draw()));
+        this.write(this.draw());
 
         const winner = this.getWinner();
         if (winner) {
             this.done = true;
-            output.push(textOut(`${winner} is the winner!`));
-            return output;
+            this.write(`${winner} is the winner!`);
+            return;
         }
 
         if (this.isFull()) {
             this.done = true;
-            output.push(textOut('the game is a draw.'));
-            return output;
+            this.write('the game is a draw.');
         }
 
         // otherwise, continue the game as normal
-        return output;
     }
 
     template = ('```\n' +

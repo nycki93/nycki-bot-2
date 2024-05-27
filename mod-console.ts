@@ -1,5 +1,5 @@
 import Readline from "readline/promises";
-import { Action, ModBase, textIn, textOut } from "./lib";
+import { Action, ModBase } from "./lib";
 
 export class ModConsole extends ModBase {
     rl: Readline.Interface;
@@ -11,9 +11,9 @@ export class ModConsole extends ModBase {
             output: process.stdout,
         });
         this.rl.on('line', (line) => {
-            this.emit(textIn(line, 'user'));
+            this.write_in(line, 'user');
         });
-        this.emit(textOut('Console mod loaded!'));
+        this.write('Console mod loaded!');
     }
 
     handle(a: Action) {
