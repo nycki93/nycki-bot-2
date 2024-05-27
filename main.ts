@@ -1,3 +1,8 @@
+import { AsyncQueue } from "./util";
+
+type ActionTick = { type: 'tick' };
+const TICK: ActionTick = { type: 'tick' };
+
 type ActionTextIn = { type: 'text_in', text: string };
 function textIn(text: string): ActionTextIn {
     return { type: 'text_in', text };
@@ -8,109 +13,122 @@ function textOut(text: string): ActionTextOut {
     return { type: 'text_out', text };
 }
 
-export type Action = ActionTextIn | ActionTextOut;
-
-type Actions = void | Action | Action[] | Promise<void | Action | Action[]>;
+export type Action = ActionTick | ActionTextIn | ActionTextOut;
 
 interface Mod {
-    send: (action: Action) => void;
-    next: () => Promise<void | Action>;
+    send(action: Action): void;
+    peek(): Promise<Action>;
+    next(): void;
 }
 
 class ModBase implements Mod {
-    incoming = [] as Action[];
-    outgoing = [] as Action[];
+    _input = new AsyncQueue<Action>();
+    _output = new AsyncQueue<Action>();
+    _next?: Promise<Action>;
 
-    constructor(fn?: (action: Action) => Actions) {
-        if (fn) this.handle = fn;
+    constructor() {
+        this._input.push(TICK);
+        this._start();
     }
-    
+
     send(action: Action) {
-        this.incoming.push(action);
-    }
-    
-    async next(): Promise<void | Action> {
-        if (this.outgoing.length) {
-            return this.outgoing.shift();
-        }
-        if (!this.incoming.length) {
-            return;
-        }
-        const a = await this.handle(this.incoming.shift()!);
-        if (!a) {
-            return;
-        }
-        if (Array.isArray(a)) {
-            this.outgoing = a;
-            return this.next();
-        }
-        return a;
+        this._input.push(action);
     }
 
-    handle(action: Action): Actions {
+    peek() {
+        if (this._next) {
+            return this._next;
+        }
+        this._next = this._output.shift();
+        return this._next;
+    }
+
+    next() {
+        this._next = undefined;
+    }
+
+    async _start() {
+        while (true) {
+            if (this._input.isEmpty()) {
+                this._input.push(TICK);
+            }
+            const action = await this._input.shift();
+            const reaction = await this.handle(action);
+            if (!reaction) {
+                continue;
+            } else if (Array.isArray(reaction)) {
+                this._output.push(...reaction);
+            } else {
+                this._output.push(reaction);
+            }
+        }
+    }
+
+    handle(_action: Action): (
+        void 
+        | Action 
+        | Action[] 
+        | Promise<void | Action | Action[]>
+    ) {
         throw new Error('not implemented');
     }
 }
 
-class ModHello extends ModBase {
-    handle(action: Action) {
-        if (action.type === 'text_in' && action.text === 'hello') {
-            return textOut('Hello, World!');
-        }
-    }
-}
-
 class ModConsole extends ModBase {
-    constructor() {
-        super();
-        this.outgoing.push(textIn('hello'));
-    }
+    firstTick = true;
 
     handle(a: Action) {
+        if (a.type === 'tick' && this.firstTick) {
+            this.firstTick = false;
+            return [
+                textOut('Console mod loaded!'),
+                textIn('ping'),
+            ];
+        }
+        if (a.type === 'text_in' && a.text === 'ping') {
+            return textOut('pong!');
+        }
         if (a.type === 'text_out') {
             console.log(a.text);
+            return;
         }
     }
 }
 
 class Bot {
-    mods = [] as Mod[];
-    actions = [] as Action[];
-
-    async start() {
-        while (true) {
-            await this.tick();
-            if (!this.actions.length) break;
-        }
-    }
-
-    async load(modName: string) {
-        let mod: Mod;
-        if (modName === 'console') {
-            mod = new ModConsole();
-        } else if (modName === 'hello') {
-            mod = new ModHello();
-        } else {
-            return;
-        }
-        this.mods.push(mod);
-    }
+    mods: Mod[] = [];
     
     async tick() {
-        console.log('tick');
-        console.log(this.actions);
-        const a = this.actions.shift();
-        if (a) this.mods.map(m => m.send(a));
-        const reactions = await Promise.all(this.mods.map(m => m.next()));
-        this.actions.push(...reactions.filter(a => a) as Action[]);
+        // get next action
+        const ps = this.mods.map(async (m, i) => ({ m, i, a: await m.peek() }));
+        const { m, i, a } = await Promise.race(ps);
+        console.log(a);
+
+        // resolve action
+        this.mods.map(m => m.send(a));
+        m.next();
+
+        // move mod to end of turn order
+        this.mods = [ 
+            ...this.mods.slice(0, i), 
+            ...this.mods.slice(i + 1),
+            m,
+        ]
+    }
+
+    async start() {
+        const m = new ModConsole();
+        m._start();
+        this.mods.push(m);
+        while(this.mods.length) {
+            await this.tick();
+        }
     }
 }
 
 async function main() {
     const bot = new Bot();
-    await bot.load('console');
-    await bot.load('hello');
-    return bot.start();
+    await bot.start();
 }
 
 main();
