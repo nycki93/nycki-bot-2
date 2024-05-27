@@ -2,12 +2,10 @@ import Readline from "readline/promises";
 import { Action, ModBase, textIn, textOut } from "./lib";
 
 export class ModConsole extends ModBase {
-    isFirstTick: boolean;
     rl: Readline.Interface;
 
     constructor() {
         super();
-        this.isFirstTick = true;
         this.rl = Readline.createInterface({
             input: process.stdin,
             output: process.stdout,
@@ -19,11 +17,12 @@ export class ModConsole extends ModBase {
     }
 
     handle(a: Action) {
-        if (a.type === 'text_in' && a.text.trim() === 'ping') {
-            return textOut('pong!');
+        if (a.type === 'text_in') {
+            console.log(`<console> ${a.text}`);
+            return;
         }
         if (a.type === 'text_out') {
-            console.log(a.text);
+            console.log(`<bot> ${a.text}`);
             return;
         }
     }
