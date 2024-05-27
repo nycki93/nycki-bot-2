@@ -1,6 +1,3 @@
-type ActionInit = { type: 'init' };
-const init: ActionInit = { type: 'init' };
-
 type ActionTextIn = { type: 'text_in', text: string };
 function textIn(text: string): ActionTextIn {
     return { type: 'text_in', text };
@@ -11,42 +8,68 @@ function textOut(text: string): ActionTextOut {
     return { type: 'text_out', text };
 }
 
-export type Action = ActionInit | ActionTextIn | ActionTextOut;
+export type Action = ActionTextIn | ActionTextOut;
+
+type Actions = void | Action | Action[] | Promise<void | Action | Action[]>;
 
 interface Mod {
-    handle: (action: Action) => void;
-    next: () => void | Action | Promise<Action>;
+    send: (action: Action) => void;
+    next: () => Promise<void | Action>;
 }
 
-class ModHello implements Mod {
-    actions = [] as Action[];
+class ModBase implements Mod {
+    incoming = [] as Action[];
+    outgoing = [] as Action[];
 
-    handle(a: Action) {
-        if (a.type !== 'text_in') return;
-        if (a.text !== 'hello') return;
-        this.actions.push(textOut('Hello, World!'));
+    constructor(fn?: (action: Action) => Actions) {
+        if (fn) this.handle = fn;
+    }
+    
+    send(action: Action) {
+        this.incoming.push(action);
+    }
+    
+    async next(): Promise<void | Action> {
+        if (this.outgoing.length) {
+            return this.outgoing.shift();
+        }
+        if (!this.incoming.length) {
+            return;
+        }
+        const a = await this.handle(this.incoming.shift()!);
+        if (!a) {
+            return;
+        }
+        if (Array.isArray(a)) {
+            this.outgoing = a;
+            return this.next();
+        }
+        return a;
     }
 
-    next() {
-        return this.actions.shift();
+    handle(action: Action): Actions {
+        throw new Error('not implemented');
     }
 }
 
-class ModConsole implements Mod {
-    actions = [] as Action[];
+class ModHello extends ModBase {
+    handle(action: Action) {
+        if (action.type === 'text_in' && action.text === 'hello') {
+            return textOut('Hello, World!');
+        }
+    }
+}
 
+class ModConsole extends ModBase {
     constructor() {
-        this.actions.push(textIn('hello'));
+        super();
+        this.outgoing.push(textIn('hello'));
     }
 
     handle(a: Action) {
         if (a.type === 'text_out') {
             console.log(a.text);
         }
-    }
-
-    next() {
-        return this.actions.shift();
     }
 }
 
@@ -77,11 +100,9 @@ class Bot {
         console.log('tick');
         console.log(this.actions);
         const a = this.actions.shift();
-        const reactions = await Promise.all(this.mods.map(mod => {
-            if (a) mod.handle(a);
-            return mod.next();
-        }));
-        this.actions = reactions.filter(a => a) as Action[];
+        if (a) this.mods.map(m => m.send(a));
+        const reactions = await Promise.all(this.mods.map(m => m.next()));
+        this.actions.push(...reactions.filter(a => a) as Action[]);
     }
 }
 
