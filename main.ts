@@ -1,7 +1,5 @@
 import { AsyncQueue } from "./util";
-
-type ActionTick = { type: 'tick' };
-const TICK: ActionTick = { type: 'tick' };
+import Readline from "readline/promises";
 
 type ActionTextIn = { type: 'text_in', text: string };
 function textIn(text: string): ActionTextIn {
@@ -13,7 +11,7 @@ function textOut(text: string): ActionTextOut {
     return { type: 'text_out', text };
 }
 
-export type Action = ActionTick | ActionTextIn | ActionTextOut;
+export type Action = ActionTextIn | ActionTextOut;
 
 interface Mod {
     send(action: Action): void;
@@ -27,12 +25,15 @@ class ModBase implements Mod {
     _next?: Promise<Action>;
 
     constructor() {
-        this._input.push(TICK);
         this._start();
     }
 
     send(action: Action) {
         this._input.push(action);
+    }
+
+    emit(...actions: Action[]) {
+        this._output.push(...actions);
     }
 
     peek() {
@@ -49,9 +50,6 @@ class ModBase implements Mod {
 
     async _start() {
         while (true) {
-            if (this._input.isEmpty()) {
-                this._input.push(TICK);
-            }
             const action = await this._input.shift();
             const reaction = await this.handle(action);
             if (!reaction) {
@@ -75,17 +73,24 @@ class ModBase implements Mod {
 }
 
 class ModConsole extends ModBase {
-    firstTick = true;
+    isFirstTick: boolean;
+    rl: Readline.Interface;
+
+    constructor() {
+        super();
+        this.isFirstTick = true;
+        this.rl = Readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
+        this.rl.on('line', (line) => {
+            this.emit(textIn(line));
+        });
+        this.emit(textOut('Console mod loaded!'));
+    }
 
     handle(a: Action) {
-        if (a.type === 'tick' && this.firstTick) {
-            this.firstTick = false;
-            return [
-                textOut('Console mod loaded!'),
-                textIn('ping'),
-            ];
-        }
-        if (a.type === 'text_in' && a.text === 'ping') {
+        if (a.type === 'text_in' && a.text.trim() === 'ping') {
             return textOut('pong!');
         }
         if (a.type === 'text_out') {
@@ -118,7 +123,6 @@ class Bot {
 
     async start() {
         const m = new ModConsole();
-        m._start();
         this.mods.push(m);
         while(this.mods.length) {
             await this.tick();
@@ -126,9 +130,9 @@ class Bot {
     }
 }
 
-async function main() {
+function main() {
     const bot = new Bot();
-    await bot.start();
+    bot.start();
 }
 
 main();
