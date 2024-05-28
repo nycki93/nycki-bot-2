@@ -140,8 +140,4 @@ export class AsyncQueue<T> {
         }
         return new Promise<T>(r => this.resolve = r);
     }
-
-    isEmpty() {
-        return !this.queue.length;
-    }
 }
