@@ -20,7 +20,7 @@ function readWriteConfig(path = 'config.json') {
         const data = readFileSync(path, { encoding: 'utf-8' });
         config = { ...DEFAULT_CONFIG, ...JSON.parse(data) };
     } catch {
-        console.log("Can't read config! Using defaults.");
+        console.log("[discord] Can't read config! Using defaults.");
         config = DEFAULT_CONFIG;
     }
     writeFileSync(path, JSON.stringify(config, null, 2));
@@ -52,20 +52,24 @@ export class ModDiscord extends ModBase {
                 return;
             }
             this.channel = ch as TextChannel;
-            this.write('[discord] app started.');
+            this.bot.write('[discord] app started.');
         });
 
         this.client.on(Events.MessageCreate, (m) => {
             if (!m.content.startsWith(this.config.prefix)) return;
             const text = m.content.slice(this.config.prefix.length);
             const user = userMention(m.author.id);
-            this.write_in(text, user);
+            this.bot.write_in(text, user);
         });
 
         await this.client.login(this.config.token);
     }
 
     async handle(action: Action) {
+        if (action.type === 'text_in') {
+            if (action.source === this.constructor.name) return;
+            await this.channel?.send(`<${action.user}> ${action.text}`);
+        }
         if (action.type === 'text_out') {
             if (!this.channel) {
                 console.log('[discord] error: unable to write to channel');

@@ -1,4 +1,9 @@
-export type ActionTextIn = { type: 'text_in', text: string, user: string };
+export type ActionTextIn = { 
+    type: 'text_in';
+    source: string;
+    text: string; 
+    user: string;
+};
 export type ActionTextOut = { type: 'text_out', text: string };
 export type Action = ActionTextIn | ActionTextOut;
 
@@ -14,13 +19,13 @@ export class Bot {
         const ps = this.mods.map(async (mod, index) => ({ 
             mod, 
             index, 
-            action: await mod.peek(),
+            action: await mod.bot.peek(),
         }));
         const { mod, index, action } = await Promise.race(ps);
 
         // resolve action
-        this.mods.map(m => m.send(action));
-        mod.next();
+        this.mods.map(m => m.bot.send(action));
+        mod.bot.next();
 
         // move mod to end of turn order
         this.mods = [ 
@@ -38,45 +43,59 @@ export class Bot {
 }
 
 export interface Mod {
-    send(action: Action): void;
-    peek(): Promise<Action>;
-    next(): void;
+    bot: {
+        send(action: Action): void;
+        peek(): Promise<Action>;
+        next(): void;
+    }
 }
 
 export class ModBase implements Mod {
-    _input = new AsyncQueue<Action>();
-    _output = new AsyncQueue<Action>();
-    _next?: Promise<Action>;
+    private _input = new AsyncQueue<Action>();
+    private _output = new AsyncQueue<Action>();
+    private _nextAction?: Promise<Action>;
+    bot = {
+        next: this._next.bind(this),
+        peek: this._peek.bind(this),
+        send: this._send.bind(this),
+        write: this._write.bind(this),
+        write_in: this._write_in.bind(this),
+    }
 
     constructor() {
         this._start();
     }
 
-    send(action: Action) {
+    private _send(action: Action) {
         this._input.push(action);
     }
 
-    write_in(text: string, user: string) {
-        this._output.push({ type: 'text_in', text, user });
+    private _write_in(text: string, user: string) {
+        this._output.push({ 
+            type: 'text_in', 
+            source: this.constructor.name,
+            text, 
+            user, 
+        });
     }
 
-    write(text: string) {
+    private _write(text: string) {
         this._output.push({ type: 'text_out', text });
     }
 
-    peek() {
-        if (this._next) {
-            return this._next;
+    private _peek() {
+        if (this._nextAction) {
+            return this._nextAction;
         }
-        this._next = this._output.shift();
-        return this._next;
+        this._nextAction = this._output.shift();
+        return this._nextAction;
     }
 
-    next() {
-        this._next = undefined;
+    private _next() {
+        this._nextAction = undefined;
     }
 
-    async _start() {
+    private async _start() {
         while (true) {
             const action = await this._input.shift();
             const reaction = await this.handle(action);
