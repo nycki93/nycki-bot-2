@@ -9,7 +9,7 @@ function main() {
     const bot = new Bot(
         new ModConsole(),
         new ModDiscord(),
-        parrot,
+        parrot(),
         new ModPing(),
         new ModTictactoe(),
     );
