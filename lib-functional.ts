@@ -1,68 +1,48 @@
-import { Action, Mod } from "./lib";
+import { Action, AsyncQueue, Mod } from "./lib";
 
-type FnArgs = {
+export function createMod<T>(fn: (modArgs: {
     action: Action;
+    setState: (newState: T) => void;
+    state: T | undefined;
     write: (text: string) => void;
-};
-
-type FnResult = (
-    void
-    | Action
-    | Action[]
-    | Promise<void | Action | Action[]>
-);
-
-export function createMod(fn: (args: FnArgs) => FnResult): () => Mod {
+}) => void) {
     function mod() {
-        const incoming: Action[] = [];
-        const outgoing: Action[] = [];
-        let resolveIncoming: ((action: Action) => void) | undefined;
-        let resolveOutgoing: ((action: Action) => void) | undefined;
+        let state: T | undefined;
+        const incoming = new AsyncQueue<Action>();
+        const outgoing = new AsyncQueue<Action>();
+        let nextAction: Action | undefined;
         
         function send(action: Action) { 
-            if (resolveIncoming) {
-                resolveIncoming(action);
-                resolveIncoming = undefined;
-                return;
-            }
             incoming.push(action);
-        };
-        
-        async function receive() {
-            if (incoming.length) {
-                return incoming.shift()!;
-            }
-            return new Promise<Action>(r => resolveIncoming = r);
         }
         
         function emit(action: Action) {
-            if (resolveOutgoing) {
-                resolveOutgoing(action);
-                resolveOutgoing = undefined;
-                return;
-            }
             outgoing.push(action);
         }
         
         async function peek(): Promise<Action> { 
-            if (outgoing.length) return (outgoing[outgoing.length - 1]);
-            const next = await new Promise<Action>(r => resolveOutgoing = r);
-            outgoing.push(next);
-            return next;
-        };
+            if (!nextAction) {
+                nextAction = await outgoing.shift();
+            }
+            return nextAction;
+        }
         
         function next() { 
-            outgoing.shift();
-        };
+            nextAction = undefined;
+        }
         
         function write(text: string) {
             emit({ type: Action.WRITE, text });
         }
+
+        function setState(newState: T) {
+            state = newState;
+        }
         
         async function start() {
             while(true) {
-                const action = await receive();
-                await fn({ action, write });
+                const action = await incoming.shift();
+                fn({ action, state, setState, write });
             }
         }
         
@@ -71,6 +51,6 @@ export function createMod(fn: (args: FnArgs) => FnResult): () => Mod {
 
         return { send, peek, next };
     }
-    
+
     return mod;
 }
