@@ -1,4 +1,4 @@
-import { Action, ActionTextIn, ModBase } from "./lib";
+import { Action, ModBase } from "./lib";
 
 export class ModTictactoe extends ModBase {
     player_x?: string;
@@ -8,53 +8,53 @@ export class ModTictactoe extends ModBase {
     done = false;
 
     handle(action: Action) {
-        if (action.type !== 'text_in') return;
+        if (action.type !== Action.INPUT) return;
         const args = action.text.trim().split(/\s+/);
         if (args[0] === 'join') return this.join(action, args);
         if (args[0] === 'play') return this.play(action, args);
     }
 
-    join(action: ActionTextIn, args: string[]) {
+    join(action: Action.Input, args: string[]) {
         if (this.player_x && this.player_o) {
-            return this.bot.write('cannot join, game in progress');
+            return this.write('cannot join, game in progress');
         }
         if (args.length !== 2 || !['x', 'o'].includes(args[1])) {
-            return this.bot.write('usage: join <x|o>');
+            return this.write('usage: join <x|o>');
         }
         if (
             (args[1] === 'x' && this.player_x)
             || (args[1] === 'o' && this.player_o)
         ) {
-            return this.bot.write('that seat is already occupied!');
+            return this.write('that seat is already occupied!');
         }
 
         // successfully seat new player
         if (args[1] === 'x') {
             this.player_x = action.user;
-            this.bot.write(`${action.user} joined as player x.`);
+            this.write(`${action.user} joined as player x.`);
         } else {
             this.player_o = action.user;
-            this.bot.write(`${action.user} joined as player o.`);
+            this.write(`${action.user} joined as player o.`);
         }
 
         if (this.player_x && this.player_o) {
             this.turn = 'x';
-            this.bot.write('game started!');
-            this.bot.write(this.draw());
+            this.write('game started!');
+            this.write(this.draw());
         }
     }
 
-    play(action: ActionTextIn, args: string[]) {
+    play(action: Action.Input, args: string[]) {
         if (this.done) {
-            return this.bot.write('the game has ended');
+            return this.write('the game has ended');
         }
         
         if (!this.player_x || !this.player_o) {
-            return this.bot.write('not enough players to begin.');
+            return this.write('not enough players to begin.');
         }
 
         if (action.user !== this.player_x && action.user !== this.player_o) {
-            return this.bot.write('you are not in this game!');
+            return this.write('you are not in this game!');
         }
 
         let team;
@@ -63,32 +63,32 @@ export class ModTictactoe extends ModBase {
         } else if (this.turn === 'o' && action.user === this.player_o) {
             team = 'o';
         } else {
-            return this.bot.write('it is not your turn!');
+            return this.write('it is not your turn!');
         }
 
         const target = Number(args.length > 1 && args[1]) - 1;
         if (args.length !== 2 || !(target in this.board)) {
-            return this.bot.write('usage: play <1-9>');
+            return this.write('usage: play <1-9>');
         }
 
         if (['x', 'o'].includes(this.board[target])) {
-            return this.bot.write('that spot is already claimed!');
+            return this.write('that spot is already claimed!');
         }
 
         this.board[target] = team;
         this.turn = team === 'x' ? 'o' : 'x';
-        this.bot.write(this.draw());
+        this.write(this.draw());
 
         const winner = this.getWinner();
         if (winner) {
             this.done = true;
-            this.bot.write(`${winner} is the winner!`);
+            this.write(`${winner} is the winner!`);
             return;
         }
 
         if (this.isFull()) {
             this.done = true;
-            this.bot.write('the game is a draw.');
+            this.write('the game is a draw.');
         }
 
         // otherwise, continue the game as normal

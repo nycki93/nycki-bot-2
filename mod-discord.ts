@@ -52,25 +52,25 @@ export class ModDiscord extends ModBase {
                 return;
             }
             this.channel = ch as TextChannel;
-            this.bot.write('[discord] app started.');
+            this.write('[discord] app started.');
         });
 
         this.client.on(Events.MessageCreate, (m) => {
             if (!m.content.startsWith(this.config.prefix)) return;
             const text = m.content.slice(this.config.prefix.length);
             const user = userMention(m.author.id);
-            this.bot.write_in(text, user);
+            this.write_in(text, user);
         });
 
         await this.client.login(this.config.token);
     }
 
     async handle(action: Action) {
-        if (action.type === 'text_in') {
+        if (action.type === Action.INPUT) {
             if (action.source === this.constructor.name) return;
             await this.channel?.send(`<${action.user}> ${action.text}`);
         }
-        if (action.type === 'text_out') {
+        if (action.type === Action.WRITE) {
             if (!this.channel) {
                 console.log('[discord] error: unable to write to channel');
                 return;

@@ -1,17 +1,39 @@
-export type ActionTextIn = { 
-    type: 'text_in';
-    source: string;
-    text: string; 
-    user: string;
-};
-export type ActionTextOut = { type: 'text_out', text: string };
-export type Action = ActionTextIn | ActionTextOut;
+export namespace Action {
+    export const INPUT = 'input';
+    export type Input = { 
+        type: typeof INPUT;
+        source: string;
+        text: string;
+        user: string;
+    }
+
+    export const WRITE = 'write';
+    export type Write = {
+        type: typeof WRITE;
+        text: string;
+    }
+
+    export type Action = Input | Write;
+}
+
+export type Action = Action.Action;
 
 export class Bot {
-    mods: Mod[] = [];
+    mods: Mod[];
+
+    constructor(...mods: Mod[]) {
+        this.mods = mods;
+    }
 
     addMod(mod: Mod) {
         this.mods.push(mod);
+        return this;
+    }
+    
+    async start() {
+        while(true) {
+            await this.tick();
+        }
     }
     
     async tick() {
@@ -19,13 +41,13 @@ export class Bot {
         const ps = this.mods.map(async (mod, index) => ({ 
             mod, 
             index, 
-            action: await mod.bot.peek(),
+            action: await mod.peek(),
         }));
         const { mod, index, action } = await Promise.race(ps);
 
         // resolve action
-        this.mods.map(m => m.bot.send(action));
-        mod.bot.next();
+        this.mods.map(m => m.send(action));
+        mod.next();
 
         // move mod to end of turn order
         this.mods = [ 
@@ -34,56 +56,41 @@ export class Bot {
             mod,
         ]
     }
-
-    async start() {
-        while(true) {
-            await this.tick();
-        }
-    }
 }
 
 export interface Mod {
-    bot: {
-        send(action: Action): void;
-        peek(): Promise<Action>;
-        next(): void;
-    }
+    send(action: Action): void;
+    peek(): Promise<Action>;
+    next(): void;
 }
 
 export class ModBase implements Mod {
     private _input = new AsyncQueue<Action>();
     private _output = new AsyncQueue<Action>();
     private _nextAction?: Promise<Action>;
-    bot = {
-        next: this._next.bind(this),
-        peek: this._peek.bind(this),
-        send: this._send.bind(this),
-        write: this._write.bind(this),
-        write_in: this._write_in.bind(this),
-    }
 
     constructor() {
-        this._start();
+        this.start_base();
     }
 
-    private _send(action: Action) {
+    send(action: Action) {
         this._input.push(action);
     }
 
-    private _write_in(text: string, user: string) {
+    write_in(text: string, user: string) {
         this._output.push({ 
-            type: 'text_in', 
+            type: Action.INPUT, 
             source: this.constructor.name,
             text, 
             user, 
         });
     }
 
-    private _write(text: string) {
-        this._output.push({ type: 'text_out', text });
+    write(text: string) {
+        this._output.push({ type: Action.WRITE, text });
     }
 
-    private _peek() {
+    peek() {
         if (this._nextAction) {
             return this._nextAction;
         }
@@ -91,11 +98,11 @@ export class ModBase implements Mod {
         return this._nextAction;
     }
 
-    private _next() {
+    next() {
         this._nextAction = undefined;
     }
 
-    private async _start() {
+    async start_base() {
         while (true) {
             const action = await this._input.shift();
             const reaction = await this.handle(action);

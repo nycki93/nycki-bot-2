@@ -11,17 +11,17 @@ export class ModConsole extends ModBase {
             output: process.stdout,
         });
         this.rl.on('line', (line) => {
-            this.bot.write_in(line, 'user');
+            this.write_in(line, 'user');
         });
-        this.bot.write('[console] Mod loaded!');
+        this.write('[console] Mod loaded!');
     }
 
     handle(a: Action) {
-        if (a.type === 'text_in') {
+        if (a.type === Action.INPUT) {
             console.log(`<${a.user}> ${a.text}`);
             return;
         }
-        if (a.type === 'text_out') {
+        if (a.type === Action.WRITE) {
             console.log(`<bot> ${a.text}`);
             return;
         }
