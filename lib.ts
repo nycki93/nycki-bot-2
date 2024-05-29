@@ -41,13 +41,13 @@ export class Bot {
         const ps = this.mods.map(async (mod, index) => ({ 
             mod, 
             index, 
-            action: await mod.peek(),
+            action: await mod._peek(),
         }));
         const { mod, index, action } = await Promise.race(ps);
 
         // resolve action
-        this.mods.map(m => m.send(action));
-        mod.next();
+        this.mods.map(m => m._send(action));
+        mod._next();
 
         // move mod to end of turn order
         this.mods = [ 
@@ -59,9 +59,9 @@ export class Bot {
 }
 
 export interface Mod {
-    send(action: Action): void;
-    peek(): Promise<Action>;
-    next(): void;
+    _send(action: Action): void;
+    _peek(): Promise<Action>;
+    _next(): void;
 }
 
 export class ModBase implements Mod {
@@ -73,7 +73,7 @@ export class ModBase implements Mod {
         this.start_base();
     }
 
-    send(action: Action) {
+    _send(action: Action) {
         this._input.push(action);
     }
 
@@ -90,7 +90,7 @@ export class ModBase implements Mod {
         this._output.push({ type: Action.WRITE, text });
     }
 
-    peek() {
+    _peek() {
         if (this._nextAction) {
             return this._nextAction;
         }
@@ -98,7 +98,7 @@ export class ModBase implements Mod {
         return this._nextAction;
     }
 
-    next() {
+    _next() {
         this._nextAction = undefined;
     }
 

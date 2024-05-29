@@ -1,18 +1,18 @@
 import { Action, AsyncQueue, Mod } from "./lib";
 
-export function createMod<T>(fn: (modArgs: {
+type ModArgs = {
     action: Action;
-    setState: (newState: T) => void;
-    state: T | undefined;
     write: (text: string) => void;
-}) => void) {
+}
+
+export function createMod<T>(initialState: T, fn: (args: ModArgs) => void) {
     function mod() {
-        let state: T | undefined;
+        let state = initialState;
         const incoming = new AsyncQueue<Action>();
         const outgoing = new AsyncQueue<Action>();
         let nextAction: Action | undefined;
         
-        function send(action: Action) { 
+        function _send(action: Action) { 
             incoming.push(action);
         }
         
@@ -20,14 +20,14 @@ export function createMod<T>(fn: (modArgs: {
             outgoing.push(action);
         }
         
-        async function peek(): Promise<Action> { 
+        async function _peek(): Promise<Action> { 
             if (!nextAction) {
                 nextAction = await outgoing.shift();
             }
             return nextAction;
         }
         
-        function next() { 
+        function _next() { 
             nextAction = undefined;
         }
         
@@ -42,14 +42,14 @@ export function createMod<T>(fn: (modArgs: {
         async function start() {
             while(true) {
                 const action = await incoming.shift();
-                fn({ action, state, setState, write });
+                fn({ action, write });
             }
         }
         
         // intentionally not awaited; we want this to run separately!
         start();
 
-        return { send, peek, next };
+        return { _send, _peek, _next };
     }
 
     return mod;

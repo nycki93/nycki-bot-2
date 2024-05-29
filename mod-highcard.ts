@@ -11,14 +11,6 @@ type State = {
     step: Step;
 };
 
-export const highcard = createMod<State>((bot) => {
-    if (bot.action.type !== Action.INPUT) return;
-
-    if (!bot.state) {
-        bot.setState({ step: Step.Init });
-    }
-
-    if (bot.state?.step === Step.Init) {
-        bot.write('[highcard] Started successfully!');
-    }
-});
+// export const highcard = createMod<State>({ }, (bot) => {
+//     if (bot.action.type !== Action.INPUT) return;
+// });
