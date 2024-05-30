@@ -1,6 +1,6 @@
 // A game for one player. Given a hand of cards, play the highest one!
 
-import { Action } from "./lib";
+import { Event } from "./lib";
 import { createMod } from "./lib-functional";
 
 enum Step {

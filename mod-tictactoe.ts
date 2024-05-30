@@ -1,13 +1,13 @@
-import { Action, ModBase } from "./lib";
+import { Event, PluginBase } from "./lib";
 
-export class ModTictactoe extends ModBase {
+export class ModTictactoe extends PluginBase {
     player_x?: string;
     player_o?: string;
     board = Array(9).fill(null).map((_v, i) => (i+1).toString());
     turn?: string;
     done = false;
 
-    handle(action: Action) {
+    handle(action: Event) {
         if (action.type !== Action.INPUT) return;
         const args = action.text.trim().split(/\s+/);
         if (args[0] === 'join') return this.join(action, args);
