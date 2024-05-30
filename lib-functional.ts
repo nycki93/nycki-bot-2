@@ -1,26 +1,26 @@
-import { Action, AsyncQueue, Mod } from "./lib";
+import { Event, AsyncQueue } from "./lib";
 
 type ModArgs = {
-    action: Action;
+    action: Event;
     write: (text: string) => void;
 }
 
 export function createMod<T>(initialState: T, fn: (args: ModArgs) => void) {
     function mod() {
         let state = initialState;
-        const incoming = new AsyncQueue<Action>();
-        const outgoing = new AsyncQueue<Action>();
-        let nextAction: Action | undefined;
+        const incoming = new AsyncQueue<Event>();
+        const outgoing = new AsyncQueue<Event>();
+        let nextAction: Event | undefined;
         
-        function _send(action: Action) { 
+        function _send(action: Event) { 
             incoming.push(action);
         }
         
-        function emit(action: Action) {
+        function emit(action: Event) {
             outgoing.push(action);
         }
         
-        async function _peek(): Promise<Action> { 
+        async function _peek(): Promise<Event> { 
             if (!nextAction) {
                 nextAction = await outgoing.shift();
             }
@@ -32,7 +32,7 @@ export function createMod<T>(initialState: T, fn: (args: ModArgs) => void) {
         }
         
         function write(text: string) {
-            emit({ type: Action.WRITE, text });
+            emit(Event.write('modname', text));
         }
 
         function setState(newState: T) {

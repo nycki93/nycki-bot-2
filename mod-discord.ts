@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
 import { readFileSync, writeFileSync } from 'fs';
-import { Action, ModBase } from './lib';
+import { Event, PluginBase } from './lib';
 
 type Config = {
     prefix: string;
@@ -27,7 +27,7 @@ function readWriteConfig(path = 'config.json') {
     return config;
 }
 
-export class ModDiscord extends ModBase {
+export class ModDiscord extends PluginBase {
     config: Config;
     client: Client;
     channel?: TextChannel;
@@ -59,18 +59,18 @@ export class ModDiscord extends ModBase {
             if (!m.content.startsWith(this.config.prefix)) return;
             const text = m.content.slice(this.config.prefix.length);
             const user = userMention(m.author.id);
-            this.write_in(text, user);
+            this.input('discord', user, text);
         });
 
         await this.client.login(this.config.token);
     }
 
-    async handle(action: Action) {
-        if (action.type === Action.INPUT) {
+    async handle(action: Event) {
+        if (action.type === Event.INPUT) {
             if (action.source === this.constructor.name) return;
             await this.channel?.send(`<${action.user}> ${action.text}`);
         }
-        if (action.type === Action.WRITE) {
+        if (action.type === Event.WRITE) {
             if (!this.channel) {
                 console.log('[discord] error: unable to write to channel');
                 return;

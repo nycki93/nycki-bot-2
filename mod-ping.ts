@@ -1,8 +1,8 @@
-import { Action, ModBase } from "./lib";
+import { Event, PluginBase } from "./lib";
 
-export class ModPing extends ModBase {
-    handle(a: Action) {
-        if (a.type === Action.INPUT && a.text.trim() === 'ping') {
+export class ModPing extends PluginBase {
+    handle(a: Event) {
+        if (a.type === Event.INPUT && a.text.trim() === 'ping') {
             this.write('pong!');
         }
     }

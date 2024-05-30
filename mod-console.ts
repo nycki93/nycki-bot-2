@@ -1,7 +1,7 @@
 import Readline from "readline/promises";
-import { Action, ModBase } from "./lib";
+import { Event, PluginBase } from "./lib";
 
-export class ModConsole extends ModBase {
+export class ModConsole extends PluginBase {
     rl: Readline.Interface;
 
     constructor() {
@@ -11,17 +11,17 @@ export class ModConsole extends ModBase {
             output: process.stdout,
         });
         this.rl.on('line', (line) => {
-            this.write_in(line, 'user');
+            this.input('console', 'user', line);
         });
         this.write('[console] Mod loaded!');
     }
 
-    handle(a: Action) {
-        if (a.type === Action.INPUT) {
+    handle(a: Event) {
+        if (a.type === Event.INPUT) {
             console.log(`<${a.user}> ${a.text}`);
             return;
         }
-        if (a.type === Action.WRITE) {
+        if (a.type === Event.WRITE) {
             console.log(`<bot> ${a.text}`);
             return;
         }
