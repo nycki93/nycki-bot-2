@@ -62,26 +62,71 @@ function main() {
     bot.send(Event.input('console', 'console', 'ping'));
 }
 
-main();
+// main();
 
-// class TestBot extends Plugin {
-//     eventBus = new AsyncQueue<Event>();
-//     eventLog = [] as Event[];
+class TestBot extends Bot {
+    log = [] as Event[];
+    logTarget = 0;
+    logResolve?: (log: Event[]) => void;
+    timeoutMs = 5000;
 
-//     send(event: Event) {
-//         this.eventBus.push(event);
-//         this.eventLog.push(event);
-//     }
-// }
+    send(event: Event) {
+        super.send(event);
+        this.log.push(event);
+        
+        if (!this.logResolve) return;
+        if (this.log.length < this.logTarget) return;
+        this.logResolve(this.log);
+        this.logResolve = undefined;
+        this.log = this.log.slice(this.logTarget);
+    }
 
-// async function test() {
-//     const bot = new TestBot();
-//     bot.addPlugin(new PingBot());
-//     bot.send(Event.input('console', 'console', 'ping'));
+    async logEvents(n: number, timeoutMs=this.timeoutMs) {
+        if (n <= this.log.length) {
+            return this.log.splice(0, n);
+        }
+        this.logTarget = n;
+        let timeout: NodeJS.Timeout;
+        const t = new Promise<Event[]>((_, rej) => timeout = setTimeout(
+            () => rej(new Error(`[testbot] did not receive ${n} events within ${timeoutMs} ms.`)), 
+            timeoutMs,
+        ));
+        const p = new Promise<Event[]>(res => this.logResolve = (log: Event[]) => {
+            res(log);
+            clearTimeout(timeout);
+        });
+        return Promise.race([p, t]);
+    }
+
+    inject(event: Event) {
+        this.send(event);
+        return this.expect(event);
+    }
+
+    async expect(expected: Event, timeoutMs=this.timeoutMs) {
+        const [ actual ] = await this.logEvents(1, timeoutMs);
+        const expectedEntries = Object.entries(expected);
+        const actualEntries = Object.entries(actual);
+        const keys = Object.keys(expected) as (keyof Event)[]
+        if (
+            expectedEntries.length == actualEntries.length
+            && keys.every((k) => expected[k] === actual[k])
+        ) {
+            return;
+        }
+        throw new Error(`Expected:\n${JSON.stringify(expected)}\nreceived:\n${JSON.stringify(actual)}`);
+    }
+}
+
+async function test() {
+    const bot = new TestBot();
+    bot.addPlugin(new PingBot());
+    bot.start();
     
-//     await bot.start();
+    await bot.inject(Event.input('console', 'console', 'ping'));
+    await bot.expect(Event.write('PingBot', 'pong'));
 
-//     console.log(bot.eventLog);
-// }
+    console.log('All passed!');
+}
 
-// test();
+test();
