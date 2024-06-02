@@ -1,3 +1,5 @@
+import { AsyncQueue } from "./lib-async-queue";
+
 export namespace Event {
     export const INPUT = 'input';
     export type Input = { 
@@ -33,29 +35,6 @@ export interface Plugin {
     _send(action: Event): void;
     _peek(): Promise<Event>;
     _next(): void;
-}
-
-export class AsyncQueue<T> {
-    queue: T[] = [];
-    resolve?: (item: T) => void;
-
-    push(...items: T[]) {
-        if (!items.length) {
-            return;
-        }
-        if (this.resolve) {
-            this.resolve(items.shift()!);
-            this.resolve = undefined;
-        }
-        this.queue.push(...items);
-    }
-
-    async shift() {
-        if (this.queue.length) {
-            return this.queue.shift()!;
-        }
-        return new Promise<T>(r => this.resolve = r);
-    }
 }
 
 export class PluginBase implements Plugin {
