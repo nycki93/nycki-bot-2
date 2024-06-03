@@ -1,19 +1,15 @@
-import { Plugin } from "./plugin";
+import { PluginBase } from "./plugin";
 import { AsyncQueue } from "./async-queue";
 import { Event } from "./event";
 
-export class Bot extends Plugin {
+export class Bot extends PluginBase {
     eventBus = new AsyncQueue<Event>();
 
     async start() {
-        for (const plugin of this.downstream) {
-            if ('start' in plugin) {
-                (plugin.start as Function)();
-            }
-        }
+        super.start();
         while (true) {
             const event = await this.eventBus.shift();
-            this.downstream.forEach(plugin => plugin.send(event));
+            this.children.forEach(c => c.plugin.send(event));
         }
     }
 

@@ -1,5 +1,5 @@
-import { Event, TestBot } from "./lib";
-import { Ping } from "./plugins/ping";
+import { Event, TestBot } from '../lib';
+import { Ping } from './ping';
 
 async function test() {
     const bot = new TestBot();
