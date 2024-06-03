@@ -1,6 +1,6 @@
-import { Event, PluginBase } from "./lib";
+import { Event, BasePlugin } from "./lib";
 
-export class ModTictactoe extends PluginBase {
+export class ModTictactoe extends BasePlugin {
     player_x?: string;
     player_o?: string;
     board = Array(9).fill(null).map((_v, i) => (i+1).toString());

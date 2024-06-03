@@ -1,7 +1,7 @@
 import Readline from "node:readline/promises";
-import { Event, PluginBase } from "../lib";
+import { Event, BasePlugin } from "../lib";
 
-export class Console extends PluginBase {
+export class ConsolePlugin extends BasePlugin {
     rl: Readline.Interface;
 
     constructor() {

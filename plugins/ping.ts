@@ -1,6 +1,6 @@
-import { Event, PluginBase } from "../lib";
+import { Event, BasePlugin } from "../lib";
 
-export class Ping extends PluginBase {
+export class PingPlugin extends BasePlugin {
     send(event: Event) {
         if (event.type === Event.INPUT && event.text.startsWith('ping')) {
             this.write('pong');
