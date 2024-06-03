@@ -1,12 +1,31 @@
 import { Event } from "./event";
 
-export class Plugin {
-    upstream = [] as Plugin[];
-    downstream = [] as Plugin[];
+export interface Plugin {
+    plugin: {
+        _setParent(plugin: Plugin): void;
+        addPlugin(plugin: Plugin): void;
+        emit(event: Event): void;
+        send(event: Event): void;
+        start(): void;
+    }
+}
 
-    addPlugin(plugin: Plugin) {
-        this.downstream.push(plugin);
-        plugin.upstream.push(this);
+export class PluginBase implements Plugin {
+    children = [] as Plugin[];
+    parent?: Plugin;
+    plugin: Plugin['plugin'];
+
+    constructor() {
+        this.plugin = this;
+    }
+
+    addPlugin(p: Plugin) {
+        this.children.push(p);
+        p.plugin._setParent(this);
+    }
+
+    _setParent(p: Plugin) {
+        this.parent = p;
     }
 
     send(event: Event) {
@@ -14,6 +33,13 @@ export class Plugin {
     }
 
     emit(event: Event) {
-        this.upstream.forEach(p => p.send(event));
+        if (!this.parent) return;
+        this.parent.plugin.send(event);
+    }
+
+    start() {
+        for (const child of this.children) {
+            child.plugin.start();
+        }
     }
 }
