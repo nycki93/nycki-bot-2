@@ -1,20 +1,20 @@
-import { Event, BasePlugin } from "./lib";
+import { Event, BasePlugin } from "../lib";
 
-export class ModTictactoe extends BasePlugin {
+export class TictactoePlugin extends BasePlugin {
     player_x?: string;
     player_o?: string;
     board = Array(9).fill(null).map((_v, i) => (i+1).toString());
     turn?: string;
     done = false;
 
-    send(action: Event) {
-        if (action.type !== Action.INPUT) return;
-        const args = action.text.trim().split(/\s+/);
-        if (args[0] === 'join') return this.join(action, args);
-        if (args[0] === 'play') return this.play(action, args);
+    send(event: Event) {
+        if (event.type !== Event.INPUT) return;
+        const args = event.text.trim().split(/\s+/);
+        if (args[0] === 'join') return this.join(event, args);
+        if (args[0] === 'play') return this.play(event, args);
     }
 
-    join(action: Action.Input, args: string[]) {
+    join(event: Event.Input, args: string[]) {
         if (this.player_x && this.player_o) {
             return this.write('cannot join, game in progress');
         }
@@ -30,11 +30,11 @@ export class ModTictactoe extends BasePlugin {
 
         // successfully seat new player
         if (args[1] === 'x') {
-            this.player_x = action.user;
-            this.write(`${action.user} joined as player x.`);
+            this.player_x = event.user;
+            this.write(`${event.user} joined as player x.`);
         } else {
-            this.player_o = action.user;
-            this.write(`${action.user} joined as player o.`);
+            this.player_o = event.user;
+            this.write(`${event.user} joined as player o.`);
         }
 
         if (this.player_x && this.player_o) {
@@ -44,7 +44,7 @@ export class ModTictactoe extends BasePlugin {
         }
     }
 
-    play(action: Action.Input, args: string[]) {
+    play(event: Event.Input, args: string[]) {
         if (this.done) {
             return this.write('the game has ended');
         }
@@ -53,14 +53,14 @@ export class ModTictactoe extends BasePlugin {
             return this.write('not enough players to begin.');
         }
 
-        if (action.user !== this.player_x && action.user !== this.player_o) {
+        if (event.user !== this.player_x && event.user !== this.player_o) {
             return this.write('you are not in this game!');
         }
 
         let team;
-        if(this.turn === 'x' && action.user === this.player_x) {
+        if(this.turn === 'x' && event.user === this.player_x) {
             team = 'x';
-        } else if (this.turn === 'o' && action.user === this.player_o) {
+        } else if (this.turn === 'o' && event.user === this.player_o) {
             team = 'o';
         } else {
             return this.write('it is not your turn!');
