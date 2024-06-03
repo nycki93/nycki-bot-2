@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
 import { readFileSync, writeFileSync } from 'fs';
-import { Event, PluginBase } from './lib';
+import { Event, BasePlugin } from './lib';
 
 type Config = {
     prefix: string;
@@ -27,7 +27,7 @@ function readWriteConfig(path = 'config.json') {
     return config;
 }
 
-export class ModDiscord extends PluginBase {
+export class ModDiscord extends BasePlugin {
     config: Config;
     client: Client;
     channel?: TextChannel;

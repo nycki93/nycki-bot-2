@@ -1,8 +1,8 @@
-import { PluginBase } from "./plugin";
+import { BasePlugin } from "./plugin";
 import { AsyncQueue } from "./async-queue";
 import { Event } from "./event";
 
-export class Bot extends PluginBase {
+export class Bot extends BasePlugin {
     eventBus = new AsyncQueue<Event>();
 
     async start() {

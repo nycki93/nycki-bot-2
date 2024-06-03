@@ -10,7 +10,7 @@ export interface Plugin {
     }
 }
 
-export class PluginBase implements Plugin {
+export class BasePlugin implements Plugin {
     children = [] as Plugin[];
     parent?: Plugin;
     plugin: Plugin['plugin'];
