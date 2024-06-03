@@ -7,6 +7,13 @@ export class Bot extends BasePlugin {
     eventBus = new AsyncQueue<Event>();
     plugins = [] as Plugin[];
 
+    constructor(plugins: Plugin[] = []) {
+        super();
+        for (const plugin of plugins) {
+            this.addPlugin(plugin);
+        }
+    }
+
     addPlugin(plugin: Plugin) {
         this.plugins.push(plugin);
         plugin.addListener((event) => this.eventBus.push(event));
