@@ -1,5 +1,5 @@
-import { Event } from "./lib";
-import { AsyncQueue } from "./lib-async-queue";
+import { Event } from "./lib/event";
+import { AsyncQueue } from "./lib/async-queue";
 
 type ModArgs = {
     action: Event;
