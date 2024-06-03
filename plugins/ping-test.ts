@@ -6,8 +6,8 @@ async function test() {
     bot.addPlugin(new PingPlugin());
     bot.start();
     
-    bot.inject(Event.input('console', 'console', 'ping'));
-    await bot.expect(Event.write('Ping', 'pong'));
+    bot.send(Event.input('console', 'console', 'ping'));
+    await bot.expect(Event.write('PingPlugin', 'pong'));
 
     console.log('All passed!');
 }
