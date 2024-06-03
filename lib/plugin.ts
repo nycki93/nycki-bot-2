@@ -19,17 +19,15 @@ export class PluginBase implements Plugin {
         this.plugin = this;
     }
 
-    addPlugin(p: Plugin) {
-        this.children.push(p);
-        p.plugin._setParent(this);
-    }
+    // Core Interface
 
     _setParent(p: Plugin) {
         this.parent = p;
     }
 
-    send(event: Event) {
-        throw new Error('Not Implemented');
+    addPlugin(p: Plugin) {
+        this.children.push(p);
+        p.plugin._setParent(this);
     }
 
     emit(event: Event) {
@@ -37,9 +35,23 @@ export class PluginBase implements Plugin {
         this.parent.plugin.send(event);
     }
 
+    send(event: Event) {
+        throw new Error('Not Implemented');
+    }
+
     start() {
         for (const child of this.children) {
             child.plugin.start();
         }
+    }
+
+    // Event Helpers
+
+    input(user: string, text: string) {
+        this.emit(Event.input(this.constructor.name, user, text));
+    }
+
+    write(text: string) {
+        this.emit(Event.write(this.constructor.name, text));
     }
 }
