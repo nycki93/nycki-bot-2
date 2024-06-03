@@ -1,7 +1,7 @@
 import Readline from "node:readline/promises";
-import { Event, Plugin } from "../lib";
+import { Event, PluginBase } from "../lib";
 
-export class Console extends Plugin {
+export class Console extends PluginBase {
     rl: Readline.Interface;
 
     constructor() {
@@ -10,13 +10,11 @@ export class Console extends Plugin {
             input: process.stdin,
             output: process.stdout,
         });
-        this.rl.on('line', (line) => {
-            this.emit(Event.input(this.constructor.name, 'user', line));
-        });
+        this.rl.on('line', (line) => this.input('user', line));
     }
     
     start() {
-        this.emit(Event.write(this.constructor.name, '[console] Plugin loaded!'));
+        this.write('[console] Plugin loaded!');
     }
 
     send(event: Event.Event): void {
