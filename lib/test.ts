@@ -12,8 +12,8 @@ export class TestBot extends Bot {
     }
 
     inject(event: Event) {
-        this.send(event);
-        return this.expect(event);
+        // send without logging
+        super.send(event);
     }
 
     async next(timeoutMs=this.timeoutMs) {
@@ -32,13 +32,7 @@ export class TestBot extends Bot {
 
     async expect(expected: Event, timeoutMs=this.timeoutMs) {
         const actual = await this.next(timeoutMs);
-        const keys = Object.keys(expected) as (keyof Event)[]
-        if (
-            keys.length == Object.keys(actual).length
-            && keys.every((k) => expected[k] === actual[k])
-        ) {
-            return;
-        }
+        if (Event.equals(actual, expected)) return;
         throw new Error(`Expected:\n${JSON.stringify(expected)}\nreceived:\n${JSON.stringify(actual)}`);
     }
 }
