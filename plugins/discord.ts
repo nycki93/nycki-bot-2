@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
 import { readFileSync, writeFileSync } from 'fs';
-import { Event, BasePlugin } from './lib';
+import { Event, BasePlugin } from '../lib';
 
 type Config = {
     prefix: string;
@@ -27,7 +27,7 @@ function readWriteConfig(path = 'config.json') {
     return config;
 }
 
-export class ModDiscord extends BasePlugin {
+export class DiscordPlugin extends BasePlugin {
     config: Config;
     client: Client;
     channel?: TextChannel;
@@ -40,7 +40,6 @@ export class ModDiscord extends BasePlugin {
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
         ]});
-        this.start();
     }
 
     async start() {
@@ -59,7 +58,7 @@ export class ModDiscord extends BasePlugin {
             if (!m.content.startsWith(this.config.prefix)) return;
             const text = m.content.slice(this.config.prefix.length);
             const user = userMention(m.author.id);
-            this.input('discord', user, text);
+            this.input(user, text);
         });
 
         await this.client.login(this.config.token);

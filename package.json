@@ -4,7 +4,8 @@
   "description": "",
   "main": "main.ts",
   "scripts": {
-    "start": "ts-node main.ts",
+    "start": "ts-node main-console.ts",
+    "discord": "ts-node main-discord.ts",
     "test": "ts-node plugins/ping-test.ts"
   },
   "author": "",
