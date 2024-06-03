@@ -7,7 +7,7 @@ export class ModTictactoe extends BasePlugin {
     turn?: string;
     done = false;
 
-    handle(action: Event) {
+    send(action: Event) {
         if (action.type !== Action.INPUT) return;
         const args = action.text.trim().split(/\s+/);
         if (args[0] === 'join') return this.join(action, args);

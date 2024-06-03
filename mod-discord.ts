@@ -65,7 +65,7 @@ export class ModDiscord extends BasePlugin {
         await this.client.login(this.config.token);
     }
 
-    async handle(action: Event) {
+    async send(action: Event) {
         if (action.type === Event.INPUT) {
             if (action.source === this.constructor.name) return;
             await this.channel?.send(`<${action.user}> ${action.text}`);

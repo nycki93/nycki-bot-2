@@ -1,49 +1,34 @@
 import { Event } from "./event";
 
+export type EventHandler = (event: Event) => void;
+
 export interface Plugin {
-    plugin: {
-        _setParent(plugin: Plugin): void;
-        addPlugin(plugin: Plugin): void;
-        emit(event: Event): void;
-        send(event: Event): void;
-        start(): void;
-    }
+    addListener(cb: EventHandler): void;
+    emit(event: Event): void;
+    send(event: Event): void;
+    start(): void;
 }
 
 export class BasePlugin implements Plugin {
-    children = [] as Plugin[];
-    parent?: Plugin;
-    plugin: Plugin['plugin'];
-
-    constructor() {
-        this.plugin = this;
-    }
+    listeners = [] as EventHandler[];
 
     // Core Interface
 
-    _setParent(p: Plugin) {
-        this.parent = p;
-    }
-
-    addPlugin(p: Plugin) {
-        this.children.push(p);
-        p.plugin._setParent(this);
+    addListener(cb: EventHandler) {
+        this.listeners.push(cb);
     }
 
     emit(event: Event) {
-        if (!this.parent) return;
-        this.parent.plugin.send(event);
+        for (const listener of this.listeners) {
+            listener(event);
+        }
     }
 
     send(event: Event) {
         throw new Error('Not Implemented');
     }
 
-    start() {
-        for (const child of this.children) {
-            child.plugin.start();
-        }
-    }
+    start() { }
 
     // Event Helpers
 

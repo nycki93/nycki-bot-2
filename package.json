@@ -5,7 +5,7 @@
   "main": "main.ts",
   "scripts": {
     "start": "ts-node main.ts",
-    "test": "ts-node main-test.ts"
+    "test": "ts-node plugins/ping-test.ts"
   },
   "author": "",
   "license": "ISC",
