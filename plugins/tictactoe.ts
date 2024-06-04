@@ -1,35 +1,70 @@
 import { Event, BasePlugin } from "../lib";
 
-export class TictactoePlugin extends BasePlugin {
-    player_x?: string;
-    player_o?: string;
-    board = Array(9).fill(null).map((_v, i) => (i+1).toString());
-    turn?: string;
-    done = false;
+enum State { 
+    Idle,
+    Joining,
+    Playing,
+}
 
-    send(event: Event) {
-        if (event.type !== Event.INPUT) return;
-        const args = event.text.trim().split(/\s+/);
-        if (args[0] === 'join') return this.join(event, args);
-        if (args[0] === 'play') return this.play(event, args);
+export class TictactoePlugin extends BasePlugin {
+    state: State = State.Idle;
+    board = [] as string[];
+    player_o?: string;
+    player_x?: string;
+    turn = '';
+
+    handleCommand(event: Event.Input, args: string[]): void {
+        if (args[0] === 'start') this.handleStart(event, args);
+        if (args[0] === 'join') this.handleJoin(event, args);
+        if (args[0] === 'play') this.handlePlay(event, args);
     }
 
-    join(event: Event.Input, args: string[]) {
-        if (this.player_x && this.player_o) {
-            return this.write('cannot join, game in progress');
+    handleStart(event: Event.Input, args: string[]) {
+        if (this.state === State.Joining) {
+            this.write('A game is already starting!');
+            return;
         }
-        if (args.length !== 2 || !['x', 'o'].includes(args[1])) {
-            return this.write('usage: join <x|o>');
+        if (this.state === State.Playing) {
+            this.write('A game is already in progress!');
+            return;
         }
-        if (
-            (args[1] === 'x' && this.player_x)
-            || (args[1] === 'o' && this.player_o)
-        ) {
-            return this.write('that seat is already occupied!');
+        this.write('Starting tictactoe. Join as x or o. (!join <x|o>)')
+        this.board = Array(9).fill(null).map((_v, i) => (i+1).toString());
+        this.player_o = undefined;
+        this.player_x = undefined;
+        this.state = State.Joining;
+    }
+
+    handleJoin(event: Event.Input, args: string[]) {
+        if (this.state === State.Idle) {
+            this.write('There is no game to join. Start one? (!start)');
+            return;
+        }
+        if (this.state === State.Playing) {
+            this.write('A game is already in progress!');
+            return;
         }
 
-        // successfully seat new player
-        if (args[1] === 'x') {
+        if (args.length !== 2) {
+            this.write('Usage: join <x|o>');
+            return;
+        }
+
+        const choice = args[1];
+        if (!['x', 'o'].includes(choice)) {
+            this.write('Usage: join <x|o>');
+            return;
+        }
+
+        if (
+            choice === 'x' && this.player_x
+            || choice === 'o' && this.player_o
+        ) {
+            this.write('That seat is already occupied.');
+            return;
+        }
+
+        if (choice === 'x') {
             this.player_x = event.user;
             this.write(`${event.user} joined as player x.`);
         } else {
@@ -39,56 +74,63 @@ export class TictactoePlugin extends BasePlugin {
 
         if (this.player_x && this.player_o) {
             this.turn = 'x';
-            this.write('game started!');
-            this.write(this.draw());
+            this.write('Game started!');
+            this.write(this.drawBoard());
+            this.state = State.Playing;
         }
     }
 
-    play(event: Event.Input, args: string[]) {
-        if (this.done) {
-            return this.write('the game has ended');
+    handlePlay(event: Event.Input, args: string[]) {
+        if (this.state === State.Idle) {
+            this.write('There is no game to join. Start one? (!start)');
+            return;
         }
-        
-        if (!this.player_x || !this.player_o) {
-            return this.write('not enough players to begin.');
+        if (this.state === State.Joining) {
+            this.write('Not enough players to begin. (!join <x|o>)');
+            return;
+        }
+        const { user } = event;
+        if (user !== this.player_x && user !== this.player_o) {
+            this.write(`${user} is not in this game!`);
+            return;
         }
 
-        if (event.user !== this.player_x && event.user !== this.player_o) {
-            return this.write('you are not in this game!');
-        }
-
-        let team;
-        if(this.turn === 'x' && event.user === this.player_x) {
-            team = 'x';
-        } else if (this.turn === 'o' && event.user === this.player_o) {
-            team = 'o';
+        let piece;
+        if(this.turn === 'x' && user === this.player_x) {
+            piece = 'x';
+        } else if (this.turn === 'o' && user === this.player_o) {
+            piece = 'o';
         } else {
-            return this.write('it is not your turn!');
+            this.write(`${user}, it is not your turn!`);
+            return;
         }
 
         const target = Number(args.length > 1 && args[1]) - 1;
         if (args.length !== 2 || !(target in this.board)) {
-            return this.write('usage: play <1-9>');
+            this.write('Usage: play <1-9>');
+            return;
         }
 
         if (['x', 'o'].includes(this.board[target])) {
-            return this.write('that spot is already claimed!');
+            this.write('That spot is already claimed!');
+            return;
         }
 
-        this.board[target] = team;
-        this.turn = team === 'x' ? 'o' : 'x';
-        this.write(this.draw());
+        this.board[target] = piece;
+        this.turn = piece === 'x' ? 'o' : 'x';
+        this.write(this.drawBoard());
 
         const winner = this.getWinner();
         if (winner) {
-            this.done = true;
             this.write(`${winner} is the winner!`);
+            this.state = State.Idle;
             return;
         }
 
         if (this.isFull()) {
-            this.done = true;
-            this.write('the game is a draw.');
+            this.write('The game is a draw!');
+            this.state = State.Idle;
+            return;
         }
 
         // otherwise, continue the game as normal
@@ -101,7 +143,7 @@ export class TictactoePlugin extends BasePlugin {
         '---|---|---\n' +
         ' 7 | 8 | 9 \n```'
     );
-    draw() {
+    drawBoard() {
         let r = this.template;
         this.board.forEach((v, i) => {
             r = r.replace((i+1).toString(), v);
