@@ -1,30 +1,26 @@
 import { Event, BasePlugin } from "../lib";
 
-enum State { 
-    Idle,
-    Joining,
-    Playing,
-}
+enum Phase { Idle, Joining, Playing }
 
 export class TictactoePlugin extends BasePlugin {
-    state: State = State.Idle;
+    phase: Phase = Phase.Idle;
     board = [] as string[];
     player_o?: string;
     player_x?: string;
     turn = '';
 
     handleCommand(event: Event.Input, args: string[]): void {
-        if (args[0] === 'start') this.handleStart(event, args);
+        if (args[0] === 'start') this.handleStart();
         if (args[0] === 'join') this.handleJoin(event, args);
         if (args[0] === 'play') this.handlePlay(event, args);
     }
 
-    handleStart(event: Event.Input, args: string[]) {
-        if (this.state === State.Joining) {
+    handleStart() {
+        if (this.phase === Phase.Joining) {
             this.write('A game is already starting!');
             return;
         }
-        if (this.state === State.Playing) {
+        if (this.phase === Phase.Playing) {
             this.write('A game is already in progress!');
             return;
         }
@@ -32,15 +28,15 @@ export class TictactoePlugin extends BasePlugin {
         this.board = Array(9).fill(null).map((_v, i) => (i+1).toString());
         this.player_o = undefined;
         this.player_x = undefined;
-        this.state = State.Joining;
+        this.phase = Phase.Joining;
     }
 
     handleJoin(event: Event.Input, args: string[]) {
-        if (this.state === State.Idle) {
+        if (this.phase === Phase.Idle) {
             this.write('There is no game to join. Start one? (!start)');
             return;
         }
-        if (this.state === State.Playing) {
+        if (this.phase === Phase.Playing) {
             this.write('A game is already in progress!');
             return;
         }
@@ -76,16 +72,16 @@ export class TictactoePlugin extends BasePlugin {
             this.turn = 'x';
             this.write('Game started!');
             this.write(this.drawBoard());
-            this.state = State.Playing;
+            this.phase = Phase.Playing;
         }
     }
 
     handlePlay(event: Event.Input, args: string[]) {
-        if (this.state === State.Idle) {
+        if (this.phase === Phase.Idle) {
             this.write('There is no game to join. Start one? (!start)');
             return;
         }
-        if (this.state === State.Joining) {
+        if (this.phase === Phase.Joining) {
             this.write('Not enough players to begin. (!join <x|o>)');
             return;
         }
@@ -123,13 +119,13 @@ export class TictactoePlugin extends BasePlugin {
         const winner = this.getWinner();
         if (winner) {
             this.write(`${winner} is the winner!`);
-            this.state = State.Idle;
+            this.phase = Phase.Idle;
             return;
         }
 
         if (this.isFull()) {
             this.write('The game is a draw!');
-            this.state = State.Idle;
+            this.phase = Phase.Idle;
             return;
         }
 
@@ -170,6 +166,6 @@ export class TictactoePlugin extends BasePlugin {
     }
 
     isFull() {
-        return this.board.filter(a => ['x', 'o'].includes(a)).length === 9;
+        return this.board.every(cell => ['x', 'o'].includes(cell));
     }
 }
