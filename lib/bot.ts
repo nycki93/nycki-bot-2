@@ -66,6 +66,7 @@ export class Bot extends BasePlugin {
         const plugin = new (ctor as ObjectConstructor) as Plugin;
         if (this.plugins.find((p) => p.id === plugin.id)) {
             this.write(`Can't load ${pluginName}, it is already loaded!`);
+            return;
         }
         this.addPlugin(plugin);
         this.write(`${plugin.id} loaded!`);
