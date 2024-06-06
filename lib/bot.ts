@@ -6,6 +6,7 @@ import { Plugin } from "./plugin";
 export class Bot extends BasePlugin {
     eventBus = new AsyncQueue<Event>();
     plugins = [] as Plugin[];
+    app?: Plugin;
 
     constructor(plugins: Plugin[] = []) {
         super();
@@ -14,19 +15,44 @@ export class Bot extends BasePlugin {
         }
     }
 
-    addPlugin(plugin: Plugin) {
-        this.plugins.push(plugin);
-        plugin.addListener((event) => this.eventBus.push(event));
+    emit(event: Event.Event) {
+        this.eventBus.push(event);
     }
 
-    async loadPlugin(pluginName: string) {
+    addPlugin(plugin: Plugin) {
+        this.plugins.push(plugin);
+        plugin.addListener((event) => this.emit(event));
+    }
+
+    async init() {
+        for (const plugin of this.plugins) {
+            plugin.init();
+        }
+        while (true) {
+            const event = await this.eventBus.shift();
+            this.send(event);
+            this.plugins.forEach(plugin => plugin.send(event));
+        }
+    }
+
+    handleCommand(event: Event.Input, args: string[]) {
+        if (args[0] === 'load') return this.handleLoad(args);
+        if (args[0] === 'start') return this.handleStart(args);
+        if (args[0] === 'stop') return this.handleStop(args);
+    }
+
+    async handleLoad(args: string[]) {
+        if (args.length !== 2) {
+            this.write('Usage: !load <plugin>');
+            return;
+        }
+        const pluginName = args[1];
+
         let module;
         try {
             module = await import(`../plugins/${pluginName}`);
         } catch {
-            this.eventBus.push(Event.write('Bot', 
-                `Can't read ${pluginName}, does the file exist?`,
-            ));
+            this.write(`Can't read ${pluginName}, does the file exist?`);
             return;
         }
         let ctor = module.default;
@@ -35,40 +61,52 @@ export class Bot extends BasePlugin {
             ctor = t && t[1];
         }
         if (!ctor) {
-            this.eventBus.push(Event.write('Bot', 
-                `Can't find plugin ${pluginName}, did you export it?`
-            ));
+            this.write(`Can't find plugin ${pluginName}, did you export it?`);
         }
         const plugin = new (ctor as ObjectConstructor) as Plugin;
         if (this.plugins.find((p) => p.id === plugin.id)) {
-            this.eventBus.push(Event.write('Bot', `Can't load ${pluginName}, it is already loaded!`));
+            this.write(`Can't load ${pluginName}, it is already loaded!`);
         }
         this.addPlugin(plugin);
+        this.write(`${plugin.id} loaded!`);
     }
 
-    async start() {
-        for (const plugin of this.plugins) {
-            plugin.start();
-        }
-        while (true) {
-            const event = await this.eventBus.shift();
-            if (event.type === Event.INPUT) {
-                const args = event.text.split(/\s+/);
-                if (args[0] === 'load') {
-                    await this.handleLoad(event, args);
-                    continue;
-                }
-            }
-            this.plugins.forEach(plugin => plugin.send(event));
-        }
-    }
-
-    handleLoad(event: Event.Input, args: string[]) {
+    handleStart(args: string[]) {
         if (args.length !== 2) {
-            this.eventBus.push(Event.write('Bot', 'Usage: !load <plugin>'));
+            this.write('Usage: !start <plugin>');
             return;
         }
-        return this.loadPlugin(args[1]);
+        if (this.app) {
+            this.write(`Already running ${this.app.id}. (!stop ${this.app.id})`);
+            return;
+        }
+        const id = args[1];
+        const app = this.plugins.find(p => p.id === id);
+        if (!app) {
+            this.write(`Cannot find plugin with id ${id}, is it loaded?`);
+            return;
+        }
+        const started = app.start();
+        if (started) {
+            this.app = app;
+        }
+    }
+
+    handleStop(args: string[]) {
+        if (args.length !== 2) {
+            this.write('Usage: !stop <plugin>');
+            return;
+        }
+        if (!this.app) return;
+        const id = args[1];
+        if (this.app.id !== id) {
+            this.write(`No running app named ${id}.`);
+            return;
+        } 
+        const stopped = this.app.stop();
+        if (stopped) {
+            this.app = undefined;
+        }
     }
 }
 

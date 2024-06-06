@@ -13,7 +13,7 @@ function main() {
         new PingPlugin(),
         new TictactoePlugin(),
     ]);
-    bot.start();
+    bot.init();
 }
 
 main();

@@ -6,7 +6,9 @@ export interface Plugin {
     id: string;
     addListener(cb: EventHandler): void;
     send(event: Event): void;
-    start(): void;
+    init(): void;
+    start(): boolean;
+    stop(): boolean;
 }
 
 export class BasePlugin implements Plugin {
@@ -27,7 +29,15 @@ export class BasePlugin implements Plugin {
         }
     }
 
-    start() { }
+    init() { }
+
+    start() { 
+        return false;
+    }
+
+    stop() { 
+        return false;
+    }
 
     // Event Helpers
 

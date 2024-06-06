@@ -9,7 +9,7 @@ function main() {
         new ParrotPlugin(),
         new PingPlugin(),
     ]);
-    bot.start();
+    bot.init();
 }
 
 main();

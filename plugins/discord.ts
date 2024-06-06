@@ -42,7 +42,7 @@ export class DiscordPlugin extends BasePlugin {
         ]});
     }
 
-    async start() {
+    async init() {
         this.client.once(Events.ClientReady, async (c) => {
             console.log(`[discord] connected as ${c.user.tag}`);
             const ch = await c.channels.fetch(this.config.channel);

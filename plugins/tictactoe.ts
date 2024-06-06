@@ -3,6 +3,7 @@ import { Event, BasePlugin } from "../lib";
 enum Phase { Idle, Joining, Playing }
 
 export class TictactoePlugin extends BasePlugin {
+    id = 'tictactoe';
     phase: Phase = Phase.Idle;
     board = [] as string[];
     player_o?: string;
@@ -10,25 +11,32 @@ export class TictactoePlugin extends BasePlugin {
     turn = '';
 
     handleCommand(event: Event.Input, args: string[]): void {
-        if (args[0] === 'start') this.handleStart();
+        if (this.phase === Phase.Idle) return;
         if (args[0] === 'join') this.handleJoin(event, args);
         if (args[0] === 'play') this.handlePlay(event, args);
     }
 
-    handleStart() {
+    start() {
         if (this.phase === Phase.Joining) {
             this.write('A game is already starting!');
-            return;
+            return false;
         }
         if (this.phase === Phase.Playing) {
             this.write('A game is already in progress!');
-            return;
-        }
+            return false;
+        }        
         this.write('Starting tictactoe. Join as x or o. (!join <x|o>)')
         this.board = Array(9).fill(null).map((_v, i) => (i+1).toString());
         this.player_o = undefined;
         this.player_x = undefined;
         this.phase = Phase.Joining;
+        return true;
+    }
+
+    stop() {
+        this.write('Game stopped.');
+        this.phase = Phase.Idle;
+        return true;
     }
 
     handleJoin(event: Event.Input, args: string[]) {

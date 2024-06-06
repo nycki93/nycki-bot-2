@@ -13,7 +13,7 @@ export class ConsolePlugin extends BasePlugin {
         this.rl.on('line', (line) => this.input('user', line));
     }
     
-    start() {
+    init() {
         this.write('[console] Plugin loaded!');
     }
 
