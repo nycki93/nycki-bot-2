@@ -1,10 +1,11 @@
 {
-  "name": "pigbot",
-  "version": "1.0.0",
+  "name": "piglin",
+  "version": "0.1.0-r1",
   "description": "",
   "main": "main.ts",
   "scripts": {
-    "start": "ts-node main-console.ts",
+    "start": "npm run console",
+    "console": "ts-node main-console.ts",
     "discord": "ts-node main-discord.ts",
     "test": "ts-node plugins/ping-test.ts"
   },
