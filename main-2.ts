@@ -4,20 +4,20 @@ type Plugin<T> = (event: Event, state?: T) => { events: Event[], state?: T };
 
 export type PluginArgs<T> = {
     state?: T;
-    setState: (newState: T) => T;
     event: Event;
     write: (text: string) => void;
 }
 
 type PluginFunction<T> = (a: PluginArgs<T>) => void;
 
-export function plugin<T = undefined>(fn: PluginFunction<T>): Plugin<T> {
+export function plugin<T>(fn: PluginFunction<T>): Plugin<T> {
     return (event: Event, state?: T) => {
-        const setState = (newState: T) => state = newState;
+        const stateCopy = state && { ...state };
         const events = [] as Event[];
         const write = (text: string) => events.push(text);
-        fn({ state, setState, event, write });
-        return { state, events };
+        const bot = { state: stateCopy, event, write };
+        fn(bot);
+        return { state: bot.state, events };
     }
 }
 
@@ -25,11 +25,11 @@ type PingState = {
     id: string;
     count: number;
 }
-export const ping = plugin<PingState>(({ state, setState, event, write }) => {
-    state = state ?? setState({ id: 'pingbot', count: 0 });
-    if (event === 'ping') {
-        write('pong');
-        state = setState({ ...state, count: state.count + 1 });
+export const ping = plugin<PingState>((bot) => {
+    bot.state = bot.state ?? { id: 'pingbot', count: 0 };
+    if (bot.event === 'ping') {
+        bot.write('pong');
+        bot.state.count += 1;
     }
 });
 
