@@ -49,11 +49,20 @@ export class BasePlugin implements Plugin {
 
     handleCommand(event: Event.Input, args: string[]) { }
 
-    input(user: string, text: string) {
-        this.emit(Event.input(this.id, user, text));
+    input(user: string, text: string, room?: string) {
+        this.emit(Event.input({
+            source: this.id, 
+            user, 
+            text,
+            room,
+        }));
     }
 
-    write(text: string) {
-        this.emit(Event.write(this.id, text));
+    write(text: string, room?: string) {
+        this.emit(Event.write({
+            source: this.id,
+            text,
+            room,
+        }));
     }
 }

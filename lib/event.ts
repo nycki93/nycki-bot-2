@@ -3,15 +3,12 @@ export namespace Event {
     export type Input = { 
         type: typeof INPUT;
         source: string;
+        room?: string;
         text: string;
         user: string;
     }
-    export function input(
-        source: string, 
-        user: string,
-        text: string, 
-    ): Input {
-        return { type: INPUT, source, user, text };
+    export function input(args: Omit<Input, 'type'>): Input {
+        return { type: INPUT, ...args };
     }
 
     export const WRITE = 'write';
@@ -19,9 +16,10 @@ export namespace Event {
         type: typeof WRITE;
         source: string;
         text: string;
+        room?: string;
     }
-    export function write(source: string, text: string): Write {
-        return { type: WRITE, source, text };
+    export function write(args: Omit<Write, 'type'>): Write {
+        return { type: WRITE, ...args };
     }
 
     export type Event = Input | Write;
