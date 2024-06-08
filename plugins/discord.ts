@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
+import { ChannelType, Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
 import { readFileSync, writeFileSync } from 'fs';
 import { Event, BasePlugin } from '../lib';
 
@@ -36,6 +36,7 @@ export class DiscordPlugin extends BasePlugin {
         super();
         this.config = readWriteConfig();
         this.client = new Client({ intents: [
+            GatewayIntentBits.DirectMessages,
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
@@ -58,23 +59,35 @@ export class DiscordPlugin extends BasePlugin {
             if (!m.content.startsWith(this.config.prefix)) return;
             const text = m.content.slice(this.config.prefix.length);
             const user = userMention(m.author.id);
-            this.input(user, text);
+            if (m.channel.type === ChannelType.DM) {
+                this.input(user, text);
+            } else {
+                this.input(user, text, m.channelId);
+            }
         });
 
         await this.client.login(this.config.token);
     }
 
-    async send(action: Event) {
-        if (action.type === Event.INPUT) {
-            if (action.source === this.constructor.name) return;
-            await this.channel?.send(`<${action.user}> ${action.text}`);
+    async send(event: Event) {
+        if (event.type === Event.INPUT) {
+            if (event.source === this.constructor.name) return;
+            await this.channel?.send(`<${event.user}> ${event.text}`);
         }
-        if (action.type === Event.WRITE) {
-            if (!this.channel) {
+        if (event.type === Event.WRITE) {
+            if (!event.user && !this.channel) {
                 console.log('[discord] error: unable to write to channel');
-                return;
+            } else if (!event.user) {
+                await this.channel!.send(event.text);
+            } else {
+                const userId = event.user!.slice(2, -1);
+                const dm = await this.client.channels.fetch(userId);
+                if (!dm) {
+                    console.log(`[discord] error: unable to dm user ${event.user}`)
+                } else {
+                    (dm as TextChannel).send(event.text);
+                }
             }
-            await this.channel.send(action.text);
         }
     }
 }

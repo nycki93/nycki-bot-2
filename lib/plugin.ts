@@ -58,11 +58,11 @@ export class BasePlugin implements Plugin {
         }));
     }
 
-    write(text: string, room?: string) {
+    write(text: string, user?: string) {
         this.emit(Event.write({
             source: this.id,
             text,
-            room,
+            user,
         }));
     }
 }

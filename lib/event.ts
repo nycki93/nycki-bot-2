@@ -16,7 +16,7 @@ export namespace Event {
         type: typeof WRITE;
         source: string;
         text: string;
-        room?: string;
+        user?: string;
     }
     export function write(args: Omit<Write, 'type'>): Write {
         return { type: WRITE, ...args };

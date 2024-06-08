@@ -5,6 +5,10 @@ export class PingPlugin extends BasePlugin {
         if (args[0] !== 'ping') return;
         if (args.length !== 1) return;
         const { user, room } = event;
-        this.write(`${user}, pong!`, room);
+        if (room) {
+            this.write(`${user}, pong!`);
+        } else {
+            this.write(`${user}, pong!`, user);
+        }
     }
 }

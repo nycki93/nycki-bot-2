@@ -37,8 +37,11 @@ export class ConsolePlugin extends BasePlugin {
             }
         }
         else if (event.type === Event.WRITE) {
-            const room = event.room ? `${event.room} ` : ''; 
-            console.log(`${room}<${this.id}> ${event.text}`);
+            if (event.user) {
+                console.log(`<${this.id}> ${event.text}`);
+            } else {
+                console.log(`console <${this.id}> ${event.text}`);
+            }
         }
     }
 }
