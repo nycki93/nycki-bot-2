@@ -81,11 +81,11 @@ export class DiscordPlugin extends BasePlugin {
                 await this.channel!.send(event.text);
             } else {
                 const userId = event.user!.slice(2, -1);
-                const dm = await this.client.channels.fetch(userId);
+                const dm = await this.client.users.fetch(userId);
                 if (!dm) {
                     console.log(`[discord] error: unable to dm user ${event.user}`)
                 } else {
-                    (dm as TextChannel).send(event.text);
+                    dm.send(event.text);
                 }
             }
         }
