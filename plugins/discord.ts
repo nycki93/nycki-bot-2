@@ -1,4 +1,4 @@
-import { ChannelType, Client, Events, GatewayIntentBits, TextChannel, userMention } from 'discord.js';
+import { ChannelType, Client, Events, GatewayIntentBits, Partials, TextChannel, userMention } from 'discord.js';
 import { readFileSync, writeFileSync } from 'fs';
 import { Event, BasePlugin } from '../lib';
 
@@ -35,12 +35,18 @@ export class DiscordPlugin extends BasePlugin {
     constructor() {
         super();
         this.config = readWriteConfig();
-        this.client = new Client({ intents: [
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.MessageContent,
-        ]});
+        this.client = new Client({ 
+            intents: [
+                GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
+            ],
+            partials: [
+                // Required to receive DMs
+                Partials.Channel,
+            ]
+        });
     }
 
     async init() {
@@ -80,12 +86,12 @@ export class DiscordPlugin extends BasePlugin {
             } else if (!event.user) {
                 await this.channel!.send(event.text);
             } else {
-                const userId = event.user!.slice(2, -1);
+                const userId = event.user.slice(2, -1);
                 const dm = await this.client.users.fetch(userId);
                 if (!dm) {
-                    console.log(`[discord] error: unable to dm user ${event.user}`)
+                    console.log(`[discord] error: unable to dm user ${userId}`)
                 } else {
-                    dm.send(event.text);
+                    await dm.send(event.text);
                 }
             }
         }
