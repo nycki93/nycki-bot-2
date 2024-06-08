@@ -4,6 +4,7 @@ import { DiscordPlugin } from "./plugins/discord";
 import { ParrotPlugin } from "./plugins/parrot";
 import { PingPlugin } from "./plugins/ping";
 import { TictactoePlugin } from "./plugins/tictactoe";
+import { Vote } from "./plugins/vote";
 
 function main() {
     const bot = new Bot([
@@ -12,6 +13,7 @@ function main() {
         new ParrotPlugin(),
         new PingPlugin(),
         new TictactoePlugin(),
+        new Vote(),
     ]);
     bot.init();
 }
