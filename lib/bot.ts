@@ -120,7 +120,7 @@ export class TestBot extends Bot {
         plugin.addListener((event) => this.log.push(event));
     }
 
-    send(event: Event) {
+    inject(event: Event) {
         this.eventBus.push(event);
     }
 
