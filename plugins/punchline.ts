@@ -180,7 +180,7 @@ export class Punchline extends BasePlugin {
             return;
         }
 
-        this.write("That's all, folks!");
+        this.write("---\nThat's all, folks!");
         this.phase = Phase.Idle;
     }
 }
