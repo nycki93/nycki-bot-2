@@ -125,8 +125,41 @@ const doublePing2 = makePlugin(function * () {
     }
 });
 
+class PluginBase implements Plugin {
+    gen?: Generator<Event, void, Event>;
+    
+    next(event: Event) {
+        while (true) {
+            this.gen = this.gen ?? this.main();
+            const { done, value } = this.gen.next(event);
+            if (done) this.gen = undefined;
+            if (value) return value;
+        }
+    }
+
+    * main(): Generator<Event, void, Event> {
+        throw new Error('not implemented');
+    }
+}
+
+class DoublePing3 extends PluginBase {
+    pongCount = 0;
+
+    * main(): Generator<Event, void, Event> {
+        const event = yield nextEvent();
+        if (event.type === 'message'
+            && event.room !== undefined
+            && event.text === 'ping'
+        ) {
+            yield write(event.room, `pong ${this.pongCount + 1}!`);
+            yield write(event.room, `pong ${this.pongCount + 2}!`);
+            this.pongCount += 2;
+        }
+    }
+}
+
 function main() {
-    const plugin = doublePing2();
+    const plugin = new DoublePing3();
     const performer = new ConsolePerformer();
     const bot = new Bot(plugin, performer);
     bot.init();
