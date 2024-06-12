@@ -11,7 +11,7 @@ const PROMPTS = [
     "If I couldn't be a furry, what would I be instead?",
     "Don't talk to me until I've had my morning ____.",
     "What's an important source of fiber?",
-    "What's Piglin-bot really bad at?",
+    "How do I make a cake?",
     "What's a question whose answer is NOT 'soup'?",
 ] as string[];
 
