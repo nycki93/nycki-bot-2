@@ -1,7 +1,25 @@
 import { BasePlugin, Event } from "../lib";
 
 const PROMPT_DEFAULT = "If you're reading this, the prompts engine isn't working yet. Just write whatever you like.";
-const PROMPTS = [] as string[];
+const PROMPTS = [
+    'Why did the chicken cross the road?',
+    'How many librarians does it take to change a lightbulb?',
+    "What's the worst thing to find under your bed?",
+    "I might be wrong, but at least I'm not ____.",
+    "What's the political party that nobody asked for?",
+    "*slaps you around with a large ____*",
+    "If I couldn't be a furry, what would I be instead?",
+    "Don't talk to me until I've had my morning ____.",
+    "What's an important source of fiber?",
+    "What's Piglin-bot really bad at?",
+    "What's a question whose answer is NOT 'soup'?",
+] as string[];
+
+type Bit = {
+    prompt: string;
+    players: Player[];
+    responses: { player: Player, text: string }[];
+};
 
 enum Phase { Idle, Joining, Prompts, Judging };
 
@@ -12,11 +30,10 @@ type Player = {
     done?: boolean;
 };
 
-type Bit = {
-    prompt: string;
-    players: Player[];
-    responses: { player: Player, text: string }[];
-};
+type Vote = {
+    playerId: string;
+    choice: number;
+}
 
 function shuffle<T>(items: T[]) {
     for (let i = items.length - 1; i > 0; i -= 1) {
@@ -60,12 +77,15 @@ export class Punchline extends BasePlugin {
     bits = [] as Bit[];
     players = [] as Player[];
     prompts = [] as string[];
+    votes = [] as Vote[];
     
     handleCommand(event: Event.Input, args: string[]) {
         if (this.phase === Phase.Idle) return;
         if (args[0] === 'join') return this.handleJoin(event, args);
         if (args[0] === 'play') return this.handlePlay(event, args);
         if (args[0] === 'submit') return this.handleSubmit(event, args);
+        if (args[0] === 'vote') return this.handleVote(event, args);
+        if (args[0] === 'count') return this.handleCount(event, args);
     }
 
     start() {
@@ -166,21 +186,58 @@ export class Punchline extends BasePlugin {
     }
 
     judgeNextBit() {
-        const bit = this.bits.pop()!;
+        const bit = this.bits[0];
+        this.votes = [];
         this.write(
             bit.prompt + '\n'
-            + bit.responses.map((v, i) => `${i}. ${v.text}\n`).join('')
-            + '(TODO: Count votes or something here)'
+            + bit.responses.map((v, i) => `${i+1}. ${v.text}\n`).join('')
+            + 'Vote for your favorite in DMs with !vote <number>.'
         );
-        // TODO: count votes or something here
+    }
 
+    handleVote(event: Event.Input, args: string[]) {
+        if (this.phase !== Phase.Judging) return;
+        if (event.room) return;
+        if (args.length !== 2) return;
+        const player = this.players.find(p => p.id === event.user);
+        if (!player) return;
+        if (this.votes.find(v => v.playerId === player.id)) {
+            this.reply(event, 'Your vote has already been counted!');
+            return;
+        }
+        const i = parseInt(args[1]);
+        if (isNaN(i) || !(i-1 in this.bits[0].responses)) {
+            this.reply(event, `${i} is not one of the choices.`);
+            return;
+        }
+        this.votes.push({ playerId: player.id, choice: i });
+        this.reply(event, 'Thank you for voting!');
+        this.write(`${player.name} has voted! End voting with !count.`);
+    }
+
+    handleCount(event: Event.Input, args: string[]) {
+        if (this.phase !== Phase.Judging) return;
+        if (!event.room) return;
+        if (args.length !== 1) return;
+        const results = this.bits[0].responses.map((r, i) => {
+            const { player, text } = r;
+            const sum = this.votes.filter((v) => v.choice === i+1).length;
+            return { player, text, sum };
+        });
+        results.sort((a, b) => b.sum - a.sum);
+        this.write(
+            'Results:\n'
+            + results.map((r) => `${r.sum} - <${r.player.name}> ${r.text}\n`).join('')
+            + '---'
+        );
+        
+        this.bits.shift();
         if (this.bits.length) {
-            this.write('---');
             this.judgeNextBit();
             return;
         }
 
-        this.write("---\nThat's all, folks!");
+        this.write("That's all, folks!\n");
         this.phase = Phase.Idle;
     }
 }
